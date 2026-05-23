@@ -35,6 +35,17 @@
   100% { transform: rotate(0deg); }
 }
 
+@keyframes reelDown {
+  0% { transform: translateY(-40px) rotate(-15deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translateY(0px) rotate(5deg); opacity: 1; }
+}
+
+@keyframes reelUp {
+  0% { transform: translateY(0px) rotate(5deg); opacity: 1; }
+  100% { transform: translateY(-40px) rotate(-15deg); opacity: 0; }
+}
+
 .animate-floatLeft {
   animation: floatLeft 15s linear infinite, bob 3s ease-in-out infinite;
 }
