@@ -2,286 +2,309 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-// ─── Match Fish Types ──────────────────────────────────────────────
+// ─── Match Types ────────────────────────────────────────────────────
 
-interface MatchFish {
+interface Match {
   id: string;
   name: string;
   emoji: string;
   bio: string;
-  size: number;
-  speed: number;
-  depth: number;
+  size: number; // 1-5 rarity
+  tagline: string;
 }
 
-const FISH_POOL: MatchFish[] = [
-  { id: "clownfish", name: "Nemo", emoji: "🐠", bio: "Just keep swimming... into your DMs", size: 1, speed: 18, depth: 0.15 },
-  { id: "goldfish", name: "Goldie", emoji: "🐟", bio: "Short attention span but big heart", size: 1, speed: 20, depth: 0.25 },
-  { id: "angelfish", name: "Angel", emoji: "🐠", bio: "Heavenly vibes, loves long swims", size: 2, speed: 14, depth: 0.35 },
-  { id: "blowfish", name: "Puffy", emoji: "🐡", bio: "I puff up when I'm nervous (it's cute)", size: 2, speed: 16, depth: 0.4 },
-  { id: "tropical", name: "Rio", emoji: "🐠", bio: "Carnival energy 24/7", size: 2, speed: 15, depth: 0.2 },
-  { id: "squid", name: "Inky", emoji: "🦑", bio: "Deep thinker, deeper waters", size: 3, speed: 12, depth: 0.55 },
-  { id: "dolphin", name: "Flipper", emoji: "🐬", bio: "Always jumping into new adventures", size: 4, speed: 10, depth: 0.65 },
-  { id: "turtle", name: "Shelly", emoji: "🐢", bio: "Slow and steady wins the heart", size: 3, speed: 22, depth: 0.7 },
-  { id: "whale", name: "Moby", emoji: "🐋", bio: "Big personality, bigger heart", size: 5, speed: 25, depth: 0.8 },
-  { id: "shark", name: "Jaws", emoji: "🦈", bio: "Looks scary, actually a softie", size: 5, speed: 8, depth: 0.5 },
-  { id: "seahorse", name: "Horus", emoji: "🦑", bio: "Mythical vibes, very loyal", size: 2, speed: 17, depth: 0.3 },
-  { id: "jellyfish", name: "Squish", emoji: "🪼", bio: "Go with the flow type", size: 3, speed: 19, depth: 0.6 },
+const MATCH_POOL: Match[] = [
+  { id: "clownfish", name: "Nemo", emoji: "🐠", bio: "Adventurous, loyal, loves exploring new reefs. Looking for someone to share anemones with.", size: 1, tagline: "Just keep swimming" },
+  { id: "goldfish", name: "Goldie", emoji: "🐟", bio: "Short attention span but a huge heart. Forgets arguments in 3 seconds flat.", size: 1, tagline: "Wait, what were we talking about?" },
+  { id: "angelfish", name: "Angel", emoji: "🐠", bio: "Heavenly vibes. Loves sunrise swims, coral gardens, and deep conversations under the moonlight.", size: 2, tagline: "Too good for this ocean" },
+  { id: "blowfish", name: "Puffy", emoji: "🐡", bio: "I puff up when I'm nervous (it's cute, I promise). Soft interior, spiky exterior.", size: 2, tagline: "Don't poke me" },
+  { id: "tropical", name: "Rio", emoji: "🐠", bio: "Carnival energy 24/7. If you can't handle the bubbles, stay out of the reef.", size: 2, tagline: "Party in the kelp forest" },
+  { id: "squid", name: "Inky", emoji: "🦑", bio: "Deep thinker, deeper waters. Writes poetry in ink. Prefers dark, quiet depths.", size: 3, tagline: "Mysterious and ink-redible" },
+  { id: "dolphin", name: "Flipper", emoji: "🐬", bio: "Always jumping into new adventures. Highly intelligent, loves to play, clicks when happy.", size: 4, tagline: "Echo-locating my soulmate" },
+  { id: "turtle", name: "Shelly", emoji: "🐢", bio: "Slow and steady wins the heart. 150 years old but young at shell.", size: 3, tagline: "Worth the wait" },
+  { id: "whale", name: "Moby", emoji: "🐋", bio: "Big personality, bigger heart. Sings love songs that travel across oceans.", size: 5, tagline: "Deep and meaningful" },
+  { id: "shark", name: "Jaws", emoji: "🦈", bio: "Looks scary, actually a softie. Top of the food chain but bottom when it comes to cuddles.", size: 5, tagline: "I don't bite (much)" },
+  { id: "seahorse", name: "Horus", emoji: "🦑", bio: "Mythical vibes, very loyal. Pairs for life. Carries the relationship on his back.", size: 3, tagline: "Ride or dive" },
+  { id: "jellyfish", name: "Squish", emoji: "🪼", bio: "Go-with-the-flow type. Bioluminescent personality — literally glows at parties.", size: 3, tagline: "Just drifting through" },
+  { id: "mermaid", name: "Marina", emoji: "🧜‍♀️", bio: "Half human, all heart. Sings songs that sailors can't resist. Collects shipwreck treasures.", size: 5, tagline: "Surface level isn't my thing" },
 ];
 
-// ─── Spawned Fish State ─────────────────────────────────────────────
+// ─── Main Page ───────────────────────────────────────────────────────
 
-interface SpawnedFish {
-  fish: MatchFish;
-  instanceId: string;
-  startTime: number;
-  direction: "left" | "right";
-  y: number;
-}
-
-// ─── SVG Boat ────────────────────────────────────────────────────────
-
-function BoatSVG({ rodAngle }: { rodAngle: number }) {
-  const rodTipX = 140 + Math.cos((rodAngle * Math.PI) / 180) * 100;
-  const rodTipY = 20 + Math.sin((rodAngle * Math.PI) / 180) * 100;
-
-  return (
-    <svg
-      viewBox="0 0 300 160"
-      className="w-full max-w-[300px] h-auto mx-auto"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Water surface behind boat */}
-      <ellipse cx="150" cy="125" rx="130" ry="8" fill="rgba(34,211,238,0.15)" />
-
-      {/* Boat hull */}
-      <path
-        d="M40 115 Q50 145 150 145 Q250 145 260 115 Z"
-        fill="#8B6914"
-        stroke="#6B4F12"
-        strokeWidth="2"
-      />
-      {/* Hull plank lines */}
-      <path d="M50 125 Q150 138 250 125" fill="none" stroke="#6B4F12" strokeWidth="1" opacity="0.5" />
-      <path d="M45 135 Q150 148 255 135" fill="none" stroke="#6B4F12" strokeWidth="1" opacity="0.5" />
-
-      {/* Boat rim */}
-      <path
-        d="M40 115 Q55 105 150 105 Q245 105 260 115"
-        fill="#A0782C"
-        stroke="#6B4F12"
-        strokeWidth="2"
-      />
-
-      {/* Fisher body */}
-      <circle cx="120" cy="85" r="10" fill="#F5C6A0" />
-      {/* Fisher hat */}
-      <ellipse cx="120" cy="72" rx="14" ry="5" fill="#5C4033" />
-      <rect x="114" y="72" width="12" height="6" rx="2" fill="#5C4033" />
-      {/* Fisher body */}
-      <rect x="113" y="95" width="14" height="18" rx="3" fill="#3B7DD8" />
-      {/* Fisher arms */}
-      <line x1="113" y1="100" x2="105" y2="110" stroke="#F5C6A0" strokeWidth="3" strokeLinecap="round" />
-      <line x1="127" y1="100" x2="135" y2="105" stroke="#F5C6A0" strokeWidth="3" strokeLinecap="round" />
-
-      {/* Fishing rod */}
-      <line
-        x1="105"
-        y1="110"
-        x2={rodTipX}
-        y2={rodTipY}
-        stroke="#8B6914"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-      {/* Rod handle */}
-      <line x1="100" y1="113" x2="105" y2="110" stroke="#5C4033" strokeWidth="4" strokeLinecap="round" />
-
-      {/* Line from rod tip into water */}
-      {rodAngle > 15 && (
-        <line
-          x1={rodTipX}
-          y1={rodTipY}
-          x2={rodTipX + 15}
-          y2={rodTipY + 120}
-          stroke="rgba(34,211,238,0.5)"
-          strokeWidth="1"
-          strokeDasharray="4 4"
-        />
-      )}
-    </svg>
-  );
-}
-
-// ─── Fish Card ────────────────────────────────────────────────
-
-function FishCard({ fish, glow, onClick }: { fish: MatchFish; glow?: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-3 bg-deep-sea/80 backdrop-blur-sm border rounded-2xl px-4 py-3 hover:scale-105 transition-all cursor-pointer min-w-[200px] ${
-        glow
-          ? "border-coral/60 shadow-lg shadow-coral/20 animate-pulse"
-          : "border-cyan-800/40 hover:border-cyan-500/60"
-      }`}
-    >
-      <span className="text-3xl">{fish.emoji}</span>
-      <div className="text-left min-w-0">
-        <p className="font-semibold text-white text-sm truncate">
-          {fish.name}
-          {Array.from({ length: fish.size }).map((_, i) => (
-            <span key={i} className="text-yellow-400 ml-0.5 text-[10px]">⭐</span>
-          ))}
-        </p>
-        <p className="text-xs text-cyan-300/60 truncate">{fish.bio}</p>
-      </div>
-    </button>
-  );
-}
-
-// ─── Main Page ───────────────────────────────────────────
+type Phase = "idle" | "casting" | "waiting" | "biting" | "revealed";
 
 export default function Home() {
-  const [lineState, setLineState] = useState<"idle" | "casting" | "reeling">("idle");
-  const [rodAngle, setRodAngle] = useState(12);
-  const [fishes, setFishes] = useState<SpawnedFish[]>([]);
-  const [caughtFish, setCaughtFish] = useState<MatchFish | null>(null);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [caught, setCaught] = useState<Match | null>(null);
+  const [bobberX, setBobberX] = useState(50);
+  const [bobberY, setBobberY] = useState(40);
   const [score, setScore] = useState(0);
-  const [glowingFishId, setGlowingFishId] = useState<string | null>(null);
-
-  const spawnFish = useCallback(() => {
-    const fish = FISH_POOL[Math.floor(Math.random() * FISH_POOL.length)];
-    const direction = Math.random() > 0.5 ? "left" : "right";
-    const y = fish.depth * 70 + 10;
-    const instanceId = `${fish.id}-${Date.now()}-${Math.random()}`;
-    setFishes((prev) => [...prev, { fish, instanceId, startTime: Date.now(), direction, y }]);
-    setTimeout(() => {
-      setFishes((prev) => prev.filter((f) => f.instanceId !== instanceId));
-    }, fish.speed * 1000 + 2000);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(spawnFish, 3000);
-    spawnFish();
-    return () => clearInterval(interval);
-  }, [spawnFish]);
+  const [catches, setCatches] = useState<Match[]>([]);
+  const [rejectCount, setRejectCount] = useState(0);
 
   const handleCast = () => {
-    if (lineState !== "idle") return;
-    setLineState("casting");
-    setCaughtFish(null);
-    setRodAngle(55);
+    if (phase !== "idle") return;
+    setPhase("casting");
 
-    setTimeout(() => {
-      const hookDepth = 0.3 + Math.random() * 0.4;
-      const nearby = fishes.find((f) => Math.abs(f.fish.depth - hookDepth) < 0.12);
+    // Random landing spot
+    const targetX = 25 + Math.random() * 50;
+    const targetY = 20 + Math.random() * 40;
 
-      if (nearby && Math.random() > 0.2) {
-        setGlowingFishId(nearby.instanceId);
-        setCaughtFish(nearby.fish);
+    // Animate bobber out
+    let steps = 0;
+    const totalSteps = 20;
+    const startX = 50;
+    const startY = 40;
+    const interval = setInterval(() => {
+      steps++;
+      const t = steps / totalSteps;
+      const ease = 1 - Math.pow(1 - t, 3); // ease out
+      setBobberX(startX + (targetX - startX) * ease);
+      setBobberY(startY + (targetY - startY) * ease);
+      if (steps >= totalSteps) {
+        clearInterval(interval);
+        setPhase("waiting");
 
+        // Random wait 2-5 seconds then bite
+        const waitTime = 2000 + Math.random() * 3000;
         setTimeout(() => {
-          setLineState("reeling");
-          setRodAngle(12);
-          setScore((s) => s + nearby.fish.size);
-          setGlowingFishId(null);
-          setFishes((prev) => prev.filter((f) => f.instanceId !== nearby.instanceId));
-          setTimeout(() => setLineState("idle"), 800);
-        }, 1500);
-      } else {
-        setCaughtFish(null);
-        setTimeout(() => {
-          setLineState("reeling");
-          setRodAngle(12);
-          setTimeout(() => setLineState("idle"), 800);
-        }, 1500);
+          setPhase("biting");
+
+          // Pick a random catch
+          setTimeout(() => {
+            const match = MATCH_POOL[Math.floor(Math.random() * MATCH_POOL.length)];
+            setCaught(match);
+            setPhase("revealed");
+            setScore((s) => s + match.size);
+            setCatches((prev) => [...prev, match]);
+          }, 1200);
+        }, waitTime);
       }
-    }, 1500);
+    }, 30);
+  };
+
+  const handleRelease = () => {
+    setCaught(null);
+    setPhase("idle");
+    setBobberX(50);
+    setBobberY(40);
+    setRejectCount((r) => r + 1);
+  };
+
+  const handleKeep = () => {
+    setCaught(null);
+    setPhase("idle");
+    setBobberX(50);
+    setBobberY(40);
   };
 
   return (
-    <main className="min-h-screen flex flex-col relative z-10 overflow-hidden">
-      {/* Boat */}
-      <div className="pt-2 px-4">
-        <BoatSVG rodAngle={rodAngle} />
+    <main className="h-screen w-screen overflow-hidden relative bg-gradient-to-b from-blue-950 via-cyan-950 to-teal-950">
+      {/* ─── OCEAN SCENE ──────────────────────────────────── */}
+
+      {/* Sky gradient top */}
+      <div className="absolute top-0 left-0 right-0 h-[30%] bg-gradient-to-b from-indigo-900/40 to-transparent" />
+
+      {/* Stars */}
+      <div className="absolute top-0 left-0 right-0 h-[20%] opacity-30">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-0.5 h-0.5 bg-white rounded-full"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              opacity: 0.3 + Math.random() * 0.7,
+              animation: `twinkle ${2 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`,
+            }}
+          />
+        ))}
       </div>
 
-      {/* Fishing zone */}
-      <div className="flex-1 relative mx-4 mt-0 mb-4 rounded-3xl border border-cyan-800/30 bg-gradient-to-b from-blue-950/50 via-cyan-950/60 to-teal-950/70 backdrop-blur-sm overflow-hidden min-h-[450px]">
-        {/* Depth markers */}
-        <div className="absolute top-4 left-4 text-[10px] text-cyan-700/40 font-mono">5m</div>
-        <div className="absolute top-24 left-4 text-[10px] text-cyan-700/40 font-mono">20m</div>
-        <div className="absolute top-44 left-4 text-[10px] text-cyan-700/40 font-mono">50m</div>
-        <div className="absolute bottom-24 left-4 text-[10px] text-cyan-700/40 font-mono">100m</div>
-        <div className="absolute bottom-4 left-4 text-[10px] text-cyan-700/40 font-mono">200m 🌊</div>
+      {/* Moon */}
+      <div className="absolute top-[8%] left-[20%] w-16 h-16 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 opacity-60 shadow-lg shadow-amber-100/20" />
 
-        {/* Fish swimming */}
-        {fishes.map((sf) => {
-          const elapsed = (Date.now() - sf.startTime) / 1000;
-          const totalTime = sf.fish.speed;
-          const progress = Math.min(elapsed / totalTime, 1);
-          const xPos = sf.direction === "right" ? progress * 100 : (1 - progress) * 100;
+      {/* Ocean waves — layered */}
+      <div className="absolute bottom-0 left-0 right-0 h-[60%]">
+        {/* Far waves */}
+        <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-cyan-600/40 to-transparent animate-[wave_8s_ease-in-out_infinite]" />
+        <div className="absolute top-[4%] left-0 right-0 h-2 bg-gradient-to-b from-cyan-500/30 to-transparent animate-[wave_6s_ease-in-out_infinite_1s]" />
+        {/* Mid waves */}
+        <div className="absolute top-[15%] left-0 right-0 h-4 bg-gradient-to-b from-cyan-600/50 to-transparent animate-[wave_7s_ease-in-out_infinite_0.5s]" />
+        <div className="absolute top-[22%] left-0 right-0 h-3 bg-gradient-to-b from-blue-500/30 to-transparent animate-[wave_9s_ease-in-out_infinite_2s]" />
+        {/* Near waves */}
+        <div className="absolute top-[35%] left-0 right-0 h-5 bg-gradient-to-b from-cyan-500/60 to-blue-800/30 animate-[wave_5s_ease-in-out_infinite]" />
+        <div className="absolute top-[50%] left-0 right-0 h-4 bg-gradient-to-b from-cyan-400/40 to-blue-900/40 animate-[wave_6s_ease-in-out_infinite_3s]" />
+      </div>
 
-          return (
-            <div
-              key={sf.instanceId}
-              className="absolute"
-              style={{
-                top: `${sf.y}%`,
-                left: `${xPos}%`,
-                transform: sf.direction === "left" ? "scaleX(-1)" : undefined,
-              }}
-            >
-              <FishCard fish={sf.fish} glow={glowingFishId === sf.instanceId} onClick={() => {}} />
-            </div>
-          );
-        })}
+      {/* ─── BOAT DECK (first person) ──────────────────────── */}
+      <div className="absolute bottom-0 left-0 right-0 h-[22%] bg-gradient-to-b from-amber-800/80 via-amber-900/90 to-amber-950">
+        {/* Deck planks */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-600/60" />
+        <div className="absolute top-[20%] left-0 right-0 h-px bg-amber-700/30" />
+        <div className="absolute top-[40%] left-0 right-0 h-px bg-amber-700/30" />
+        <div className="absolute top-[60%] left-0 right-0 h-px bg-amber-700/30" />
+        <div className="absolute top-[80%] left-0 right-0 h-px bg-amber-700/30" />
 
-        {fishes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-cyan-500/30 text-lg animate-pulse">
-              🐟 Fish incoming... 🐠
-            </p>
+        {/* Hands/arms holding rod — first person */}
+        <div className="absolute left-[30%] top-[10%] w-32">
+          {/* Left arm */}
+          <div className="absolute bottom-0 left-0 w-3 h-16 bg-gradient-to-b from-amber-700 to-amber-800 rounded-full origin-bottom -rotate-12" />
+          {/* Rod */}
+          <div className="absolute bottom-4 left-8 w-64 h-1.5 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-500 rounded-full origin-left transition-transform duration-500"
+            style={{ transform: `rotate(${phase === "idle" ? "-15" : phase === "casting" ? "-35" : "-20"}deg)` }}
+          />
+          {/* Right arm */}
+          <div className="absolute bottom-0 left-14 w-3 h-16 bg-gradient-to-b from-amber-700 to-amber-800 rounded-full origin-bottom rotate-6" />
+        </div>
+
+        {/* Rod tip eyelet glow */}
+        {phase !== "idle" && (
+          <div
+            className="absolute w-2 h-2 rounded-full bg-cyan-300 shadow-lg shadow-cyan-400/50 transition-all duration-1000"
+            style={{ left: `${bobberX}%`, top: `${15 + (100 - bobberY) * 0.1}%` }}
+          />
+        )}
+
+        {/* Deck label */}
+        <div className="absolute bottom-4 left-0 right-0 text-center">
+          <p className="text-amber-500/40 text-xs font-mono tracking-[0.3em] uppercase">
+            S.S. Hook It Up
+          </p>
+        </div>
+      </div>
+
+      {/* ─── FISHING LINE (when cast) ─────────────────────── */}
+      {phase !== "idle" && (
+        <svg className="absolute inset-0 pointer-events-none z-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <line
+            x1="35"
+            y1="78"
+            x2={bobberX}
+            y2={bobberY}
+            stroke="rgba(165,243,252,0.5)"
+            strokeWidth="0.15"
+            strokeDasharray={phase === "casting" ? "1 0.5" : phase === "biting" ? "1 0.3" : "1 1"}
+          />
+        </svg>
+      )}
+
+      {/* ─── BOBBER ──────────────────────────────────────── */}
+      {phase !== "idle" && (
+        <div
+          className="absolute z-30 transition-all duration-100"
+          style={{
+            left: `${bobberX}%`,
+            top: `${bobberY}%`,
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          <div className={`flex flex-col items-center ${phase === "biting" ? "animate-[bobFast_0.3s_ease-in-out_infinite]" : "animate-[bobSlow_2s_ease-in-out_infinite]"}`}>
+            {/* Bobber top */}
+            <div className="w-4 h-3 rounded-t-full bg-red-500 shadow-md" />
+            <div className="w-4 h-3 bg-white border-x border-cyan-300" />
+            <div className="w-4 h-3 rounded-b-full bg-red-500 shadow-md" />
+            {/* Ripples */}
+            {phase === "waiting" && (
+              <div className="absolute -inset-4">
+                <div className="absolute inset-0 rounded-full border border-cyan-400/20 animate-ping" />
+              </div>
+            )}
+            {phase === "biting" && (
+              <div className="absolute -inset-6">
+                <div className="absolute inset-0 rounded-full border-2 border-coral/40 animate-ping" />
+                <div className="absolute inset-0 rounded-full border border-coral/60 animate-ping [animation-delay:0.3s]" />
+              </div>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* ─── STATUS TEXT ─────────────────────────────────── */}
+      <div className="absolute top-[45%] left-0 right-0 text-center z-10 pointer-events-none">
+        {phase === "waiting" && (
+          <p className="text-cyan-300/50 text-lg animate-pulse tracking-wide">
+            Waiting for a bite...
+          </p>
+        )}
+        {phase === "biting" && (
+          <p className="text-coral font-bold text-2xl animate-bob tracking-wide">
+            🎣 Something's on the line!
+          </p>
         )}
       </div>
 
-      {/* Cast Button */}
-      <div className="px-4 pb-6 flex flex-col items-center gap-2">
-        {caughtFish ? (
-          <div className="text-center animate-bob mb-2">
-            <p className="text-2xl">{caughtFish.emoji}</p>
-            <p className="text-lg font-bold text-coral">You caught {caughtFish.name}!</p>
-            <p className="text-sm text-cyan-300/60">{caughtFish.bio}</p>
-            <p className="text-xs text-yellow-400 mt-1">
-              +{caughtFish.size} {caughtFish.size === 1 ? "point" : "points"}
-            </p>
+      {/* ─── PROFILE CARD REVEAL ──────────────────────────── */}
+      {phase === "revealed" && caught && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-b from-blue-950/90 via-cyan-950/95 to-teal-950/95 backdrop-blur-sm animate-[slideUp_0.5s_ease-out]">
+          <div className="w-full max-w-md bg-gradient-to-b from-blue-900/80 to-cyan-950/90 backdrop-blur-xl border border-cyan-700/40 rounded-3xl overflow-hidden shadow-2xl shadow-cyan-900/50">
+            {/* Fish emoji hero */}
+            <div className="pt-10 pb-6 flex flex-col items-center bg-gradient-to-b from-coral/10 to-transparent">
+              <div className="text-7xl animate-bob mb-4 drop-shadow-lg">{caught.emoji}</div>
+              <h2 className="text-3xl font-extrabold text-white tracking-tight">
+                {caught.name}
+              </h2>
+              <p className="text-cyan-300/60 text-sm mt-1 italic">{caught.tagline}</p>
+              {/* Stars */}
+              <div className="flex gap-1 mt-3">
+                {Array.from({ length: caught.size }).map((_, i) => (
+                  <span key={i} className="text-yellow-400 text-lg">⭐</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Bio */}
+            <div className="px-8 py-6">
+              <p className="text-cyan-200/80 text-center leading-relaxed">{caught.bio}</p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-8 pb-8 flex gap-4">
+              <button
+                onClick={handleRelease}
+                className="flex-1 py-4 rounded-2xl border border-red-500/40 text-red-300 font-semibold hover:bg-red-500/10 transition-all active:scale-95 text-lg"
+              >
+                🎣 Release
+              </button>
+              <button
+                onClick={handleKeep}
+                className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-coral to-orange-500 text-white font-bold hover:scale-105 transition-all active:scale-95 shadow-lg shadow-coral/30 text-lg"
+              >
+                ❤️ Keep
+              </button>
+            </div>
           </div>
-        ) : lineState === "reeling" ? (
-          <p className="text-cyan-400/50 animate-pulse">Reeling in...</p>
-        ) : lineState === "casting" ? (
-          <p className="text-cyan-400/50 animate-pulse">Line&apos;s in the water...</p>
-        ) : null}
+        </div>
+      )}
 
-        <button
-          onClick={handleCast}
-          disabled={lineState !== "idle"}
-          className="hook-card px-12 py-5 text-xl font-bold text-white bg-gradient-to-r from-coral to-orange-500 rounded-full hover:scale-105 transition-all shadow-lg shadow-coral/30 flex items-center gap-3 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed"
-        >
-          <span className="text-2xl">🎣</span>
-          Cast Your Line
-          <span className="text-2xl">🎣</span>
-        </button>
-      </div>
+      {/* ─── CAST BUTTON ─────────────────────────────────── */}
+      {phase === "idle" && (
+        <div className="absolute bottom-[25%] left-0 right-0 flex justify-center z-30">
+          <button
+            onClick={handleCast}
+            className="px-14 py-6 text-2xl font-extrabold text-white bg-gradient-to-r from-coral to-orange-500 rounded-full hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-coral/40 flex items-center gap-4 tracking-wide"
+          >
+            <span>🎣</span>
+            CAST
+            <span>🎣</span>
+          </button>
+        </div>
+      )}
 
-      {/* Score */}
-      {score > 0 && (
-        <div className="fixed top-4 right-4 hook-card px-4 py-2 flex items-center gap-2 text-sm z-30">
+      {/* ─── CATCH COUNT ─────────────────────────────────── */}
+      <div className="absolute top-4 right-4 z-40 flex flex-col gap-2">
+        <div className="hook-card px-4 py-2 flex items-center gap-2 text-sm">
           <span>🐟</span>
           <span className="font-bold text-coral">{score}</span>
           <span className="text-cyan-300/60">points</span>
         </div>
-      )}
+        {catches.length > 0 && (
+          <div className="hook-card px-4 py-2 text-xs text-cyan-300/60">
+            {catches.length} caught • {rejectCount} released
+          </div>
+        )}
+      </div>
     </main>
   );
 }

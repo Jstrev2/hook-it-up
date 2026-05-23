@@ -11,16 +11,9 @@
   body {
     @apply text-white;
   }
-}
-
-@keyframes floatLeft {
-  0% { transform: translateX(110vw); }
-  100% { transform: translateX(-10vw); }
-}
-
-@keyframes floatRight {
-  0% { transform: translateX(-10vw); }
-  100% { transform: translateX(110vw); }
+  * {
+    @apply box-border;
+  }
 }
 
 @keyframes bob {
@@ -28,38 +21,34 @@
   50% { transform: translateY(-8px); }
 }
 
-@keyframes reel {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(-10deg); }
-  75% { transform: rotate(10deg); }
-  100% { transform: rotate(0deg); }
+@keyframes bobFast {
+  0%, 100% { transform: translateY(0px); }
+  25% { transform: translateY(-6px); }
+  75% { transform: translateY(4px); }
 }
 
-@keyframes reelDown {
-  0% { transform: translateY(-40px) rotate(-15deg); opacity: 0; }
-  40% { opacity: 1; }
-  100% { transform: translateY(0px) rotate(5deg); opacity: 1; }
+@keyframes bobSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
 }
 
-@keyframes reelUp {
-  0% { transform: translateY(0px) rotate(5deg); opacity: 1; }
-  100% { transform: translateY(-40px) rotate(-15deg); opacity: 0; }
+@keyframes wave {
+  0%, 100% { transform: translateX(0px); }
+  50% { transform: translateX(-10px); }
 }
 
-.animate-floatLeft {
-  animation: floatLeft 15s linear infinite, bob 3s ease-in-out infinite;
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
-.animate-floatRight {
-  animation: floatRight 18s linear infinite, bob 2.5s ease-in-out infinite;
+@keyframes slideUp {
+  from { transform: translateY(10%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .animate-bob {
   animation: bob 2s ease-in-out infinite;
-}
-
-.animate-reel {
-  animation: reel 0.6s ease-in-out;
 }
 
 .hook-card {
