@@ -9,9 +9,9 @@ interface MatchFish {
   name: string;
   emoji: string;
   bio: string;
-  size: number; // 1-5, bigger = rarer
-  speed: number; // seconds to cross screen
-  depth: number; // vertical position 0-1
+  size: number;
+  speed: number;
+  depth: number;
 }
 
 const FISH_POOL: MatchFish[] = [
@@ -39,82 +39,83 @@ interface SpawnedFish {
   y: number;
 }
 
-// ─── Boat ───────────────────────────────────────────────────────────
+// ─── SVG Boat ────────────────────────────────────────────────────────
 
-function Boat({ casting }: { casting: boolean }) {
+function BoatSVG({ rodAngle }: { rodAngle: number }) {
+  const rodTipX = 140 + Math.cos((rodAngle * Math.PI) / 180) * 100;
+  const rodTipY = 20 + Math.sin((rodAngle * Math.PI) / 180) * 100;
+
   return (
-    <div className="relative w-full flex justify-center">
-      {/* Water surface */}
-      <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-b from-cyan-300/60 to-transparent" />
+    <svg
+      viewBox="0 0 300 160"
+      className="w-full max-w-[300px] h-auto mx-auto"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Water surface behind boat */}
+      <ellipse cx="150" cy="125" rx="130" ry="8" fill="rgba(34,211,238,0.15)" />
 
-      {/* Boat */}
-      <div className={`relative transition-transform duration-300 ${casting ? "translate-y-1" : "animate-bob"}`}>
-        {/* Fisher */}
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-10">
-          <div className="text-3xl">🧑‍🎣</div>
-        </div>
+      {/* Boat hull */}
+      <path
+        d="M40 115 Q50 145 150 145 Q250 145 260 115 Z"
+        fill="#8B6914"
+        stroke="#6B4F12"
+        strokeWidth="2"
+      />
+      {/* Hull plank lines */}
+      <path d="M50 125 Q150 138 250 125" fill="none" stroke="#6B4F12" strokeWidth="1" opacity="0.5" />
+      <path d="M45 135 Q150 148 255 135" fill="none" stroke="#6B4F12" strokeWidth="1" opacity="0.5" />
 
-        {/* Rod */}
-        <div
-          className={`absolute -top-6 left-10 w-24 h-1 origin-bottom-left transition-transform duration-500 ${
-            casting ? "rotate-45" : "rotate-12"
-          }`}
-        >
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-amber-700 rounded" />
-        </div>
+      {/* Boat rim */}
+      <path
+        d="M40 115 Q55 105 150 105 Q245 105 260 115"
+        fill="#A0782C"
+        stroke="#6B4F12"
+        strokeWidth="2"
+      />
 
-        {/* Boat body */}
-        <pre className="text-4xl md:text-5xl leading-none text-amber-100 select-none">
-          {"   ⛵"}
-        </pre>
-        <pre className="text-4xl md:text-5xl leading-none text-amber-200 -mt-1 select-none">
-          {"  ⛵⛵"}
-        </pre>
-        <p className="text-xs text-cyan-300/60 text-center mt-1 font-medium tracking-widest uppercase">
-          Your Boat
-        </p>
-      </div>
-    </div>
+      {/* Fisher body */}
+      <circle cx="120" cy="85" r="10" fill="#F5C6A0" />
+      {/* Fisher hat */}
+      <ellipse cx="120" cy="72" rx="14" ry="5" fill="#5C4033" />
+      <rect x="114" y="72" width="12" height="6" rx="2" fill="#5C4033" />
+      {/* Fisher body */}
+      <rect x="113" y="95" width="14" height="18" rx="3" fill="#3B7DD8" />
+      {/* Fisher arms */}
+      <line x1="113" y1="100" x2="105" y2="110" stroke="#F5C6A0" strokeWidth="3" strokeLinecap="round" />
+      <line x1="127" y1="100" x2="135" y2="105" stroke="#F5C6A0" strokeWidth="3" strokeLinecap="round" />
+
+      {/* Fishing rod */}
+      <line
+        x1="105"
+        y1="110"
+        x2={rodTipX}
+        y2={rodTipY}
+        stroke="#8B6914"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      {/* Rod handle */}
+      <line x1="100" y1="113" x2="105" y2="110" stroke="#5C4033" strokeWidth="4" strokeLinecap="round" />
+
+      {/* Line from rod tip into water */}
+      {rodAngle > 15 && (
+        <line
+          x1={rodTipX}
+          y1={rodTipY}
+          x2={rodTipX + 15}
+          y2={rodTipY + 120}
+          stroke="rgba(34,211,238,0.5)"
+          strokeWidth="1"
+          strokeDasharray="4 4"
+        />
+      )}
+    </svg>
   );
 }
 
-// ─── Fishing Line + Hook ─────────────────────────────────────────────
+// ─── Fish Card ────────────────────────────────────────────────
 
-function FishingLine({
-  state,
-  lineLength,
-}: {
-  state: "idle" | "casting" | "reeling";
-  lineLength: number;
-}) {
-  if (state === "idle") return null;
-
-  const reelClass = state === "casting" ? "animate-[reelDown_1.5s_ease-in_forwards]" : "animate-[reelUp_0.8s_ease-out_forwards]";
-
-  return (
-    <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-      {/* Line */}
-      <div className="mx-auto w-0.5 bg-cyan-300/60 rounded" style={{ height: `${lineLength * 0.7}px` }}>
-        {/* Hook at bottom */}
-        <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 text-2xl ${reelClass}`}>
-          🪝
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Match Fish Card ────────────────────────────────────────────────
-
-function FishCard({
-  fish,
-  onClick,
-  glow,
-}: {
-  fish: MatchFish;
-  onClick: () => void;
-  glow?: boolean;
-}) {
+function FishCard({ fish, glow, onClick }: { fish: MatchFish; glow?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -138,26 +139,22 @@ function FishCard({
   );
 }
 
-// ─── Main Hook It Up Page ───────────────────────────────────────────
+// ─── Main Page ───────────────────────────────────────────
 
 export default function Home() {
   const [lineState, setLineState] = useState<"idle" | "casting" | "reeling">("idle");
-  const [lineLength, setLineLength] = useState(0);
+  const [rodAngle, setRodAngle] = useState(12);
   const [fishes, setFishes] = useState<SpawnedFish[]>([]);
   const [caughtFish, setCaughtFish] = useState<MatchFish | null>(null);
   const [score, setScore] = useState(0);
   const [glowingFishId, setGlowingFishId] = useState<string | null>(null);
 
-  // Spawn fish periodically
   const spawnFish = useCallback(() => {
     const fish = FISH_POOL[Math.floor(Math.random() * FISH_POOL.length)];
     const direction = Math.random() > 0.5 ? "left" : "right";
-    const y = fish.depth * 70 + 10; // 10-80% of zone
+    const y = fish.depth * 70 + 10;
     const instanceId = `${fish.id}-${Date.now()}-${Math.random()}`;
-
     setFishes((prev) => [...prev, { fish, instanceId, startTime: Date.now(), direction, y }]);
-
-    // Cleanup old fish
     setTimeout(() => {
       setFishes((prev) => prev.filter((f) => f.instanceId !== instanceId));
     }, fish.speed * 1000 + 2000);
@@ -165,53 +162,38 @@ export default function Home() {
 
   useEffect(() => {
     const interval = setInterval(spawnFish, 3000);
-    spawnFish(); // spawn first one immediately
+    spawnFish();
     return () => clearInterval(interval);
   }, [spawnFish]);
 
-  // Cast the line
   const handleCast = () => {
     if (lineState !== "idle") return;
     setLineState("casting");
     setCaughtFish(null);
+    setRodAngle(55);
 
-    // Animate line going down
-    const maxLength = 400 + Math.random() * 200;
-    setLineLength(maxLength);
-
-    // Find fish near the hook after cast completes
     setTimeout(() => {
-      // Find a fish roughly in the right depth zone
-      const hookDepth = 0.3 + Math.random() * 0.4; // where hook lands
+      const hookDepth = 0.3 + Math.random() * 0.4;
       const nearby = fishes.find((f) => Math.abs(f.fish.depth - hookDepth) < 0.12);
 
       if (nearby && Math.random() > 0.2) {
-        // Caught something!
         setGlowingFishId(nearby.instanceId);
         setCaughtFish(nearby.fish);
 
         setTimeout(() => {
           setLineState("reeling");
-          setLineLength(0);
+          setRodAngle(12);
           setScore((s) => s + nearby.fish.size);
           setGlowingFishId(null);
-
-          // Remove caught fish from pool
           setFishes((prev) => prev.filter((f) => f.instanceId !== nearby.instanceId));
-
-          setTimeout(() => {
-            setLineState("idle");
-          }, 800);
+          setTimeout(() => setLineState("idle"), 800);
         }, 1500);
       } else {
-        // Didn't catch anything
         setCaughtFish(null);
         setTimeout(() => {
           setLineState("reeling");
-          setLineLength(0);
-          setTimeout(() => {
-            setLineState("idle");
-          }, 800);
+          setRodAngle(12);
+          setTimeout(() => setLineState("idle"), 800);
         }, 1500);
       }
     }, 1500);
@@ -220,21 +202,18 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col relative z-10 overflow-hidden">
       {/* Boat */}
-      <div className="pt-6 px-4">
-        <Boat casting={lineState !== "idle"} />
+      <div className="pt-2 px-4">
+        <BoatSVG rodAngle={rodAngle} />
       </div>
 
       {/* Fishing zone */}
-      <div className="flex-1 relative mx-4 mt-2 mb-4 rounded-3xl border border-cyan-800/30 bg-gradient-to-b from-blue-950/50 via-cyan-950/60 to-teal-950/70 backdrop-blur-sm overflow-hidden min-h-[500px]">
+      <div className="flex-1 relative mx-4 mt-0 mb-4 rounded-3xl border border-cyan-800/30 bg-gradient-to-b from-blue-950/50 via-cyan-950/60 to-teal-950/70 backdrop-blur-sm overflow-hidden min-h-[450px]">
         {/* Depth markers */}
-        <div className="absolute top-8 left-4 text-[10px] text-cyan-700/40 font-mono">5m</div>
-        <div className="absolute top-32 left-4 text-[10px] text-cyan-700/40 font-mono">20m</div>
-        <div className="absolute top-56 left-4 text-[10px] text-cyan-700/40 font-mono">50m</div>
-        <div className="absolute bottom-32 left-4 text-[10px] text-cyan-700/40 font-mono">100m</div>
-        <div className="absolute bottom-8 left-4 text-[10px] text-cyan-700/40 font-mono">200m 🌊</div>
-
-        {/* Line + Hook */}
-        <FishingLine state={lineState} lineLength={lineLength} />
+        <div className="absolute top-4 left-4 text-[10px] text-cyan-700/40 font-mono">5m</div>
+        <div className="absolute top-24 left-4 text-[10px] text-cyan-700/40 font-mono">20m</div>
+        <div className="absolute top-44 left-4 text-[10px] text-cyan-700/40 font-mono">50m</div>
+        <div className="absolute bottom-24 left-4 text-[10px] text-cyan-700/40 font-mono">100m</div>
+        <div className="absolute bottom-4 left-4 text-[10px] text-cyan-700/40 font-mono">200m 🌊</div>
 
         {/* Fish swimming */}
         {fishes.map((sf) => {
@@ -246,26 +225,23 @@ export default function Home() {
           return (
             <div
               key={sf.instanceId}
-              className="absolute transition-transform"
+              className="absolute"
               style={{
                 top: `${sf.y}%`,
                 left: `${xPos}%`,
-                transform: sf.direction === "left" ? "scaleX(-1)" : "",
+                transform: sf.direction === "left" ? "scaleX(-1)" : undefined,
               }}
             >
-              <FishCard
-                fish={sf.fish}
-                glow={glowingFishId === sf.instanceId}
-                onClick={() => {}}
-              />
+              <FishCard fish={sf.fish} glow={glowingFishId === sf.instanceId} onClick={() => {}} />
             </div>
           );
         })}
 
-        {/* Empty state */}
         {fishes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-cyan-500/30 text-lg animate-pulse">Fish incoming...</p>
+            <p className="text-cyan-500/30 text-lg animate-pulse">
+              🐟 Fish incoming... 🐠
+            </p>
           </div>
         )}
       </div>
@@ -275,9 +251,7 @@ export default function Home() {
         {caughtFish ? (
           <div className="text-center animate-bob mb-2">
             <p className="text-2xl">{caughtFish.emoji}</p>
-            <p className="text-lg font-bold text-coral">
-              You caught {caughtFish.name}!
-            </p>
+            <p className="text-lg font-bold text-coral">You caught {caughtFish.name}!</p>
             <p className="text-sm text-cyan-300/60">{caughtFish.bio}</p>
             <p className="text-xs text-yellow-400 mt-1">
               +{caughtFish.size} {caughtFish.size === 1 ? "point" : "points"}
@@ -286,7 +260,7 @@ export default function Home() {
         ) : lineState === "reeling" ? (
           <p className="text-cyan-400/50 animate-pulse">Reeling in...</p>
         ) : lineState === "casting" ? (
-          <p className="text-cyan-400/50 animate-pulse">Line's in the water...</p>
+          <p className="text-cyan-400/50 animate-pulse">Line&apos;s in the water...</p>
         ) : null}
 
         <button
