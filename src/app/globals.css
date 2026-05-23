@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-fish-blue: oklch(0.6 0.2 240);
+  --color-coral: oklch(0.7 0.25 20);
+  --color-kelp: oklch(0.5 0.2 160);
+  --color-deep-sea: oklch(0.15 0.05 260);
+}
+
+@layer base {
+  body {
+    @apply text-white;
+  }
+}
+
+@keyframes floatLeft {
+  0% { transform: translateX(110vw); }
+  100% { transform: translateX(-10vw); }
+}
+
+@keyframes floatRight {
+  0% { transform: translateX(-10vw); }
+  100% { transform: translateX(110vw); }
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes reel {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-floatLeft {
+  animation: floatLeft 15s linear infinite, bob 3s ease-in-out infinite;
+}
+
+.animate-floatRight {
+  animation: floatRight 18s linear infinite, bob 2.5s ease-in-out infinite;
+}
+
+.animate-bob {
+  animation: bob 2s ease-in-out infinite;
+}
+
+.animate-reel {
+  animation: reel 0.6s ease-in-out;
+}
+
+.hook-card {
+  @apply bg-deep-sea/70 backdrop-blur-md border border-cyan-800/50 rounded-2xl p-6 shadow-lg shadow-cyan-900/20;
+}
