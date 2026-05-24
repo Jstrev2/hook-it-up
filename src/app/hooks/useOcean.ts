@@ -481,6 +481,88 @@ function drawRod(
   ctx.restore();
 }
 
+function drawDeck(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  const deckH = h * 0.06; // tiny 6% deck
+  const y = h - deckH;
+
+  // Deck gradient
+  const grad = ctx.createLinearGradient(0, y, 0, h);
+  grad.addColorStop(0, "rgba(180,120,50,0.9)");
+  grad.addColorStop(0.3, "rgba(140,90,30,0.95)");
+  grad.addColorStop(1, "rgba(80,50,15,0.98)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, y, w, deckH);
+
+  // Plank line at top
+  ctx.strokeStyle = "rgba(200,150,80,0.5)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(w, y);
+  ctx.stroke();
+
+  // Deck label
+  ctx.fillStyle = "rgba(200,160,100,0.3)";
+  ctx.font = `${Math.min(w * 0.018, 12)}px monospace`;
+  ctx.textAlign = "center";
+  ctx.fillText("S.S. HOOK IT UP", w / 2, h - deckH * 0.2);
+}
+
+function drawAtmosphere(ctx: CanvasRenderingContext2D, w: number, h: number, waterStart: number, time: number) {
+  // Mist layer just above water surface
+  const mistGrad = ctx.createLinearGradient(0, waterStart - 40, 0, waterStart + 80);
+  mistGrad.addColorStop(0, "rgba(165,200,220,0)");
+  mistGrad.addColorStop(0.3, "rgba(165,200,220,0.08)");
+  mistGrad.addColorStop(0.6, "rgba(140,180,200,0.12)");
+  mistGrad.addColorStop(1, "rgba(165,200,220,0)");
+  ctx.fillStyle = mistGrad;
+  ctx.fillRect(0, waterStart - 40, w, 120);
+
+  // Horizon glow (faint warm light on horizon)
+  const horizonGrad = ctx.createLinearGradient(0, waterStart - 20, 0, waterStart + 30);
+  horizonGrad.addColorStop(0, "rgba(200,160,100,0)");
+  horizonGrad.addColorStop(0.5, "rgba(200,150,80,0.04)");
+  horizonGrad.addColorStop(1, "rgba(200,160,100,0)");
+  ctx.fillStyle = horizonGrad;
+  ctx.fillRect(0, waterStart - 20, w, 50);
+
+  // Distant fog banks (subtle patches)
+  for (let i = 0; i < 3; i++) {
+    const fx = (w * 0.2 + i * w * 0.25 + Math.sin(time * 0.15 + i) * 30 + w) % w;
+    const fy = waterStart - 10;
+    const fogGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, 80);
+    fogGrad.addColorStop(0, "rgba(180,200,210,0.06)");
+    fogGrad.addColorStop(1, "rgba(180,200,210,0)");
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(fx - 80, fy - 40, 160, 80);
+  }
+
+  // Vignette (darken edges for focus)
+  const vignetteGrad = ctx.createRadialGradient(w / 2, h * 0.45, w * 0.4, w / 2, h * 0.45, w * 0.75);
+  vignetteGrad.addColorStop(0, "rgba(0,0,0,0)");
+  vignetteGrad.addColorStop(0.6, "rgba(0,0,0,0)");
+  vignetteGrad.addColorStop(1, "rgba(0,0,10,0.55)");
+  ctx.fillStyle = vignetteGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Top edge darken
+  const topGrad = ctx.createLinearGradient(0, 0, 0, h * 0.15);
+  topGrad.addColorStop(0, "rgba(2,4,20,0.3)");
+  topGrad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, w, h * 0.15);
+}
+
+function drawBreathingGuide(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Subtle animated hint "Breathe..." text
+  const alpha = 0.15 + Math.sin(time * 0.5) * 0.1;
+  const y = h * 0.5 + Math.sin(time * 0.4) * 5;
+  ctx.fillStyle = `rgba(165,220,240,${alpha})`;
+  ctx.font = `${Math.min(w * 0.025, 18)}px serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("breathe...", w / 2, y);
+}
+
 function drawBobber(ctx: CanvasRenderingContext2D, b: Vec2, time: number, phase: OceanPhase) {
   const bobScale = 0.8 + Math.sin(time * 2.5) * 0.05;
 
@@ -754,6 +836,9 @@ export function useOcean(
       // Ripples
       drawRipples(ctx, state.ripples, dt);
 
+      // Atmosphere (mist, vignette, fog)
+      drawAtmosphere(ctx, w, h, waterStart, state.time);
+
       // Line
       if (state.bobber.active) {
         drawLine(ctx, rodTip, state.bobber, state.time, state.phase);
@@ -766,6 +851,14 @@ export function useOcean(
 
       // Fishing rod (drawn on top of water, first-person in hand)
       drawRod(ctx, rodPivot, state.rodAngle, state.rodBend, rodLength, state.time);
+
+      // Breathing guide text
+      if (state.phase === "idle") {
+        drawBreathingGuide(ctx, w, h, state.time);
+      }
+
+      // Tiny deck at very bottom
+      drawDeck(ctx, w, h, state.time);
 
       rafId = requestAnimationFrame(loop);
     };

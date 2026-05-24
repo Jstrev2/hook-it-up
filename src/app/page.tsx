@@ -94,23 +94,6 @@ export default function Home() {
       <canvas ref={canvasRef} className="absolute inset-0" />
 
       {/* ── Fishing Rod HUD (overlay) ── */}
-      <div className="absolute bottom-0 left-0 right-0 h-[22%] pointer-events-none">
-        {/* Deck planks */}
-        <div className="absolute inset-0 bg-gradient-to-b from-amber-800/80 via-amber-900/90 to-amber-950">
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-600/60" />
-          <div className="absolute top-[20%] left-0 right-0 h-px bg-amber-700/30" />
-          <div className="absolute top-[40%] left-0 right-0 h-px bg-amber-700/30" />
-          <div className="absolute top-[60%] left-0 right-0 h-px bg-amber-700/30" />
-          <div className="absolute top-[80%] left-0 right-0 h-px bg-amber-700/30" />
-        </div>
-
-        {/* Deck label */}
-        <div className="absolute bottom-4 left-0 right-0 text-center">
-          <p className="text-amber-500/40 text-xs font-mono tracking-[0.3em] uppercase">
-            S.S. Hook It Up
-          </p>
-        </div>
-      </div>
 
       {/* ── Status Text ── */}
       <div className="absolute top-[42%] left-0 right-0 text-center z-10 pointer-events-none">
