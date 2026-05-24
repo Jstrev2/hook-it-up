@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ProfileData } from "../data/profiles";
 
 // ─── Spring Physics ─────────────────────────────────────────────────
 
@@ -46,14 +47,6 @@ function useSpring(target: number, config: SpringConfig = { stiffness: 180, damp
 
 // ─── Profile Card ───────────────────────────────────────────────────
 
-export interface ProfileData {
-  name: string;
-  emoji: string;
-  tagline: string;
-  bio: string;
-  size: number;
-}
-
 interface ProfileCardProps {
   profile: ProfileData;
   visible: boolean;
@@ -65,7 +58,6 @@ export default function ProfileCard({ profile, visible, onKeep, onRelease }: Pro
   const [shouldRender, setShouldRender] = useState(false);
   const targetProgress = visible ? 1 : 0;
   const progress = useSpring(targetProgress);
-  // Fixed 5 springs for max rarity stars
   const star0 = useSpring(visible ? 1 : 0, { stiffness: 200, damping: 20, mass: 1 });
   const star1 = useSpring(visible ? 1 : 0, { stiffness: 200, damping: 20, mass: 1 });
   const star2 = useSpring(visible ? 1 : 0, { stiffness: 200, damping: 20, mass: 1 });
@@ -73,7 +65,6 @@ export default function ProfileCard({ profile, visible, onKeep, onRelease }: Pro
   const star4 = useSpring(visible ? 1 : 0, { stiffness: 200, damping: 20, mass: 1 });
   const starSprings = [star0, star1, star2, star3, star4];
 
-  // Delay unmount for exit animation
   useEffect(() => {
     if (visible) {
       setShouldRender(true);
@@ -95,13 +86,11 @@ export default function ProfileCard({ profile, visible, onKeep, onRelease }: Pro
       className="absolute inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
       style={{ opacity }}
     >
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-gradient-to-b from-blue-950/90 via-cyan-950/95 to-teal-950/95 pointer-events-auto"
         style={{ opacity: Math.min(1, progress * 2), backdropFilter: `blur(${progress * 12}px)` }}
       />
 
-      {/* Card */}
       <div
         className="w-full max-w-md pointer-events-auto"
         style={{
@@ -119,22 +108,29 @@ export default function ProfileCard({ profile, visible, onKeep, onRelease }: Pro
               opacity: Math.min(1, progress * 2),
             }}
           >
+            {/* Initials avatar */}
             <div
-              className="text-7xl mb-4 drop-shadow-lg"
+              className="mb-4 rounded-full flex items-center justify-center text-3xl font-extrabold text-white shadow-xl"
               style={{
-                transform: `translateY(${(1 - progress) * -60}px) rotate(${(1 - progress) * 15}deg)`,
+                width: 80,
+                height: 80,
+                backgroundColor: profile.color,
+                transform: `translateY(${(1 - progress) * -60}px)`,
+                boxShadow: `0 0 30px ${profile.color}44`,
               }}
             >
-              {profile.emoji}
+              {profile.initials}
             </div>
+
             <h2 className="text-3xl font-extrabold text-white tracking-tight">
               {profile.name}
+              <span className="text-cyan-300/60 text-lg font-normal ml-2">{profile.age}</span>
             </h2>
             <p className="text-cyan-300/60 text-sm mt-1 italic">{profile.tagline}</p>
 
             {/* Stars — staggered */}
             <div className="flex gap-1 mt-3">
-              {Array.from({ length: profile.size }).map((_, i) => (
+              {Array.from({ length: profile.rarity }).map((_, i) => (
                 <span
                   key={i}
                   className="text-yellow-400 text-lg"
