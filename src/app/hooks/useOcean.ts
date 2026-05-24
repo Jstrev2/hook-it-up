@@ -262,6 +262,225 @@ function drawLine(ctx: CanvasRenderingContext2D, rodTip: Vec2, bobber: Vec2, tim
   ctx.setLineDash([]);
 }
 
+function drawRod(
+  ctx: CanvasRenderingContext2D,
+  pivot: Vec2,
+  angle: number,
+  bend: number,
+  length: number,
+  time: number
+) {
+  ctx.save();
+
+  // Rod blank — drawn as a tapered path
+  const buttWidth = 5;
+  const midWidth = 3;
+  const tipWidth = 1.2;
+  const corkLen = length * 0.12;
+  const buttEnd = { x: pivot.x - Math.cos(angle) * corkLen * 0.3, y: pivot.y - Math.sin(angle) * corkLen * 0.3 };
+
+  // Compute control points along the rod with bend
+  // Bend increases toward tip (quadratic distribution)
+  const segments = 30;
+  const path: Vec2[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const bendAmount = bend * t * t; // quadratic — tip bends most
+    const a = angle + bendAmount;
+    const px = pivot.x + Math.cos(a) * t * length;
+    const py = pivot.y + Math.sin(a) * t * length;
+    path.push({ x: px, y: py });
+  }
+
+  // Draw tapered shaft
+  ctx.beginPath();
+  for (let i = 0; i < path.length; i++) {
+    const t = i / segments;
+    const w = buttWidth + (tipWidth - buttWidth) * t;
+    // Perpendicular to tangent for width
+    const nextT = Math.min(1, t + 0.02);
+    const aNext = angle + bend * nextT * nextT;
+    const tx = Math.cos(aNext);
+    const ty = Math.sin(aNext);
+    // Perpendicular: (-ty, tx)
+    const perpX = -ty * w / 2;
+    const perpY = tx * w / 2;
+
+    if (i === 0) ctx.moveTo(path[i].x + perpX, path[i].y + perpY);
+    else ctx.lineTo(path[i].x + perpX, path[i].y + perpY);
+  }
+  ctx.strokeStyle = "#1a1a2e";
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+
+  // Fill shaft
+  ctx.beginPath();
+  for (let i = 0; i < path.length; i++) {
+    const t = i / segments;
+    const w = buttWidth + (tipWidth - buttWidth) * t;
+    const nextT = Math.min(1, t + 0.02);
+    const aNext = angle + bend * nextT * nextT;
+    const tx = Math.cos(aNext);
+    const ty = Math.sin(aNext);
+    const perpX = -ty * w / 2;
+    const perpY = tx * w / 2;
+    if (i === 0) ctx.moveTo(path[i].x + perpX, path[i].y + perpY);
+    else ctx.lineTo(path[i].x + perpX, path[i].y + perpY);
+  }
+  for (let i = path.length - 1; i >= 0; i--) {
+    const t = i / segments;
+    const w = buttWidth + (tipWidth - buttWidth) * t;
+    const nextT = Math.min(1, t + 0.02);
+    const aNext = angle + bend * nextT * nextT;
+    const tx = Math.cos(aNext);
+    const ty = Math.sin(aNext);
+    const perpX = -ty * w / 2;
+    const perpY = tx * w / 2;
+    ctx.lineTo(path[i].x - perpX, path[i].y - perpY);
+  }
+  ctx.closePath();
+
+  // Gradient fill — dark charcoal with subtle highlight
+  const grad = ctx.createLinearGradient(
+    pivot.x - 10, pivot.y,
+    path[path.length - 1].x, path[path.length - 1].y
+  );
+  grad.addColorStop(0, "#2d2d44");
+  grad.addColorStop(0.3, "#3a3a55");
+  grad.addColorStop(0.6, "#2a2a40");
+  grad.addColorStop(1, "#1e1e30");
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Cork grip
+  const corkEnd = corkLen;
+  const corkStartT = 0.05;
+  const corkEndT = corkStartT + corkLen / length;
+  ctx.beginPath();
+  for (let i = Math.floor(corkStartT * segments); i <= Math.floor(corkEndT * segments); i++) {
+    const t = i / segments;
+    const a = angle + bend * t * t;
+    const cx = pivot.x + Math.cos(a) * t * length;
+    const cy = pivot.y + Math.sin(a) * t * length;
+    const w = buttWidth + (tipWidth - buttWidth) * t + 3; // slightly thicker
+    // Perpendicular
+    const tanX = Math.cos(a);
+    const tanY = Math.sin(a);
+    const perpX = -tanY * w / 2;
+    const perpY = tanX * w / 2;
+    if (i === Math.floor(corkStartT * segments)) ctx.moveTo(cx + perpX, cy + perpY);
+    else ctx.lineTo(cx + perpX, cy + perpY);
+  }
+  for (let i = Math.floor(corkEndT * segments); i >= Math.floor(corkStartT * segments); i--) {
+    const t = i / segments;
+    const a = angle + bend * t * t;
+    const cx = pivot.x + Math.cos(a) * t * length;
+    const cy = pivot.y + Math.sin(a) * t * length;
+    const w = buttWidth + (tipWidth - buttWidth) * t + 3;
+    const tanX = Math.cos(a);
+    const tanY = Math.sin(a);
+    const perpX = -tanY * w / 2;
+    const perpY = tanX * w / 2;
+    ctx.lineTo(cx - perpX, cy - perpY);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "#c4a46c";
+  ctx.fill();
+
+  // Cork speckle texture
+  for (let i = 0; i < 20; i++) {
+    const t = corkStartT + (Math.random() * (corkEndT - corkStartT));
+    const a = angle + bend * t * t;
+    const cx = pivot.x + Math.cos(a) * t * length;
+    const cy = pivot.y + Math.sin(a) * t * length;
+    const offX = (Math.random() - 0.5) * 5;
+    const offY = (Math.random() - 0.5) * 5;
+    ctx.fillStyle = `rgba(${150 + Math.random()*50},${130 + Math.random()*40},${90 + Math.random()*30},0.5)`;
+    ctx.beginPath();
+    ctx.arc(cx + offX, cy + offY, 0.3 + Math.random() * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Reel (below grip, on bottom side)
+  const reelT = corkStartT + 0.02;
+  const reelA = angle + bend * reelT * reelT;
+  const reelX = pivot.x + Math.cos(reelA) * reelT * length;
+  const reelY = pivot.y + Math.sin(reelA) * reelT * length;
+  // Reel foot (stem)
+  const reelFootLen = 12;
+  const footPerp = { x: -Math.sin(reelA), y: Math.cos(reelA) }; // perpendicular (below rod)
+  ctx.strokeStyle = "#666";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(reelX, reelY);
+  ctx.lineTo(reelX + footPerp.x * reelFootLen, reelY + footPerp.y * reelFootLen);
+  ctx.stroke();
+
+  // Reel body (circle)
+  const reelCenterX = reelX + footPerp.x * reelFootLen;
+  const reelCenterY = reelY + footPerp.y * reelFootLen;
+  ctx.fillStyle = "#555";
+  ctx.beginPath();
+  ctx.arc(reelCenterX, reelCenterY, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#444";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Reel spool highlight
+  ctx.fillStyle = "#777";
+  ctx.beginPath();
+  ctx.arc(reelCenterX - 1, reelCenterY - 1, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Reel handle (rotate with time)
+  ctx.save();
+  ctx.translate(reelCenterX, reelCenterY);
+  ctx.rotate(time * 3);
+  ctx.fillStyle = "#666";
+  ctx.fillRect(-1, -5, 2, 5);
+  ctx.fillStyle = "#888";
+  ctx.beginPath();
+  ctx.arc(0, -6, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Eyelets (line guides) along the rod
+  const eyeletCount = 5;
+  for (let ei = 1; ei <= eyeletCount; ei++) {
+    const et = corkEndT + ((ei / (eyeletCount + 1)) * (1 - corkEndT));
+    const ea = angle + bend * et * et;
+    const ex = pivot.x + Math.cos(ea) * et * length;
+    const ey = pivot.y + Math.sin(ea) * et * length;
+    const tanX = Math.cos(ea);
+    const tanY = Math.sin(ea);
+    const perpX = -tanY;
+    const perpY = tanX;
+
+    // Small ring on top of rod at this point
+    ctx.strokeStyle = "#888";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(ex + perpX * 3, ey + perpY * 3, 2.5 - ei * 0.3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Tip eyelet (larger)
+  const tipP = path[path.length - 1];
+  ctx.strokeStyle = "#aaa";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(tipP.x, tipP.y, 2, 0, Math.PI * 2);
+  ctx.stroke();
+  // Tiny glow at tip
+  ctx.fillStyle = "rgba(165,243,252,0.5)";
+  ctx.beginPath();
+  ctx.arc(tipP.x, tipP.y, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 function drawBobber(ctx: CanvasRenderingContext2D, b: Vec2, time: number, phase: OceanPhase) {
   const bobScale = 0.8 + Math.sin(time * 2.5) * 0.05;
 
@@ -377,7 +596,12 @@ export function useOcean(
     particles: createParticlePool(),
     bobber: { x: 0, y: 0, active: false } as Vec2 & { active: boolean },
     bobberVy: 0,
-    rodTip: { x: 0, y: 0 },
+    rodPivot: { x: 0, y: 0 },
+    rodAngle: 0,       // current angle (screen-space rad)
+    rodTargetAngle: 0, // spring target
+    rodBend: 0,        // tip deflection (whip)
+    rodBendV: 0,       // bend velocity
+    castAnimPhase: 0,  // 0=none, 1=backswing, 2=whip, 3=recover
     castData: { startX: 0, startY: 0, targetX: 0, targetY: 0, startTime: 0, duration: 0, initialVx: 0, initialVy: 0, active: false } as CastData,
     biteForce: 0,
     planktonTimer: 0,
@@ -405,7 +629,9 @@ export function useOcean(
       state.h = h;
       state.waterStart = h * 0.38;
       state.stars = createStars(w, h);
-      state.rodTip = { x: w * 0.4, y: h * 0.75 };
+      state.rodPivot = { x: w * 0.35, y: h * 0.78 };
+      state.rodAngle = -0.25; // slight upward angle
+      state.rodTargetAngle = -0.25;
       if (!state.bobber.active) {
         state.bobber.x = w * 0.5;
         state.bobber.y = h * 0.42;
@@ -434,6 +660,25 @@ export function useOcean(
 
       // ── Sway (gentle boat motion) ──
       state.swayX = Math.sin(state.time * 0.3) * 2;
+
+      // ── Rod whip physics ──
+      const rodPivot = state.rodPivot;
+      // Spring toward target angle
+      state.rodAngle += ((state.rodTargetAngle - state.rodAngle) * 8 - (state.rodAngle - state.rodTargetAngle) * 0.5) * dt;
+      // Bend decays toward 0 with velocity
+      state.rodBendV -= state.rodBend * 15 * dt;
+      state.rodBendV *= 0.9;
+      state.rodBend += state.rodBendV * dt;
+      state.rodBend *= 0.93;
+      if (Math.abs(state.rodBend) < 0.001) state.rodBend = 0;
+
+      // Compute rod tip from pivot + angle + bend
+      const rodLength = Math.min(w, h) * 0.35;
+      const tipAngle = state.rodAngle + state.rodBend;
+      const rodTip: Vec2 = {
+        x: rodPivot.x + Math.cos(tipAngle) * rodLength,
+        y: rodPivot.y + Math.sin(tipAngle) * rodLength,
+      };
 
       // ── Handle cast physics ──
       if (state.castData.active) {
@@ -511,13 +756,16 @@ export function useOcean(
 
       // Line
       if (state.bobber.active) {
-        drawLine(ctx, state.rodTip, state.bobber, state.time, state.phase);
+        drawLine(ctx, rodTip, state.bobber, state.time, state.phase);
       }
 
       // Bobber
       if (state.bobber.active) {
         drawBobber(ctx, state.bobber, state.time, state.phase);
       }
+
+      // Fishing rod (drawn on top of water, first-person in hand)
+      drawRod(ctx, rodPivot, state.rodAngle, state.rodBend, rodLength, state.time);
 
       rafId = requestAnimationFrame(loop);
     };
@@ -535,8 +783,24 @@ export function useOcean(
     if (state.phase !== "idle") return;
     state.phase = "casting";
 
-    const startX = state.rodTip.x;
-    const startY = state.rodTip.y - 20;
+    // Compute rod tip from current angle
+    const rodLength = Math.min(state.w, state.h) * 0.35;
+    const rodTipX = state.rodPivot.x + Math.cos(state.rodAngle) * rodLength;
+    const rodTipY = state.rodPivot.y + Math.sin(state.rodAngle) * rodLength;
+    const startX = rodTipX;
+    const startY = rodTipY - 20;
+
+    // Whip animation: backswing → snap forward
+    state.rodTargetAngle = -0.55; // pull back
+    state.rodBendV = -0.3;
+    setTimeout(() => {
+      state.rodTargetAngle = 0.35; // whip forward
+      state.rodBendV = 0.8;
+    }, 150);
+    setTimeout(() => {
+      state.rodTargetAngle = -0.25; // recover
+    }, 500);
+
     const dx = targetX - startX;
     const dy = targetY - startY;
     const duration = 0.6 + Math.random() * 0.3;

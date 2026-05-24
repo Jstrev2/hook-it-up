@@ -104,23 +104,6 @@ export default function Home() {
           <div className="absolute top-[80%] left-0 right-0 h-px bg-amber-700/30" />
         </div>
 
-        {/* Rod + Hands */}
-        <div className="absolute left-[28%] bottom-[30%]">
-          {/* Rod handle */}
-          <div
-            className="absolute bottom-2 left-4 w-56 h-2 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-500 rounded-full origin-bottom-left transition-transform duration-500"
-            style={{ transform: `rotate(${phase === "casting" ? "-35" : "-15"}deg)` }}
-          />
-          {/* Rod tip eyelet glow */}
-          {(phase === "casting" || phase === "waiting" || phase === "biting") && (
-            <div className="absolute -top-2 left-52 w-2 h-2 rounded-full bg-cyan-300 shadow-lg shadow-cyan-400/50 animate-pulse" />
-          )}
-          {/* Left hand */}
-          <div className="absolute bottom-0 left-6 w-3 h-14 bg-gradient-to-b from-amber-700 to-amber-800 rounded-full origin-bottom -rotate-6" />
-          {/* Right hand */}
-          <div className="absolute bottom-0 left-16 w-3 h-14 bg-gradient-to-b from-amber-700 to-amber-800 rounded-full origin-bottom rotate-3" />
-        </div>
-
         {/* Deck label */}
         <div className="absolute bottom-4 left-0 right-0 text-center">
           <p className="text-amber-500/40 text-xs font-mono tracking-[0.3em] uppercase">
