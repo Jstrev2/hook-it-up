@@ -9,7 +9,7 @@
 
 @layer base {
   body {
-    @apply text-white;
+    @apply text-white overflow-hidden;
   }
   * {
     @apply box-border;
@@ -19,38 +19,4 @@
 @keyframes bob {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-8px); }
-}
-
-@keyframes bobFast {
-  0%, 100% { transform: translateY(0px); }
-  25% { transform: translateY(-6px); }
-  75% { transform: translateY(4px); }
-}
-
-@keyframes bobSlow {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-3px); }
-}
-
-@keyframes wave {
-  0%, 100% { transform: translateX(0px); }
-  50% { transform: translateX(-10px); }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(10%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.animate-bob {
-  animation: bob 2s ease-in-out infinite;
-}
-
-.hook-card {
-  @apply bg-deep-sea/70 backdrop-blur-md border border-cyan-800/50 rounded-2xl p-6 shadow-lg shadow-cyan-900/20;
 }
