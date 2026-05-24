@@ -64,10 +64,24 @@ interface CastData {
 
 // ─── Constants ──────────────────────────────────────────────────────
 
-const WAVE_LAYERS = [
-  { amplitude: 14, frequency: 0.012, phaseSpeed: 0.4, color: "rgba(6,182,212,0.25)" },
-  { amplitude: 8, frequency: 0.025, phaseSpeed: 0.7, color: "rgba(8,145,178,0.20)" },
-  { amplitude: 4, frequency: 0.045, phaseSpeed: 1.1, color: "rgba(14,116,144,0.15)" },
+// ─── Gerstner Wave Layers (GPU Gems 1 technique) ──────────────────
+// Each layer: direction, amplitude, frequency, speed, steepness
+// Gerstner: x' = x - Q*A*cos(dir)*cos(freq*x + phase)
+//           y' = A*sin(freq*x + phase)
+interface WaveLayer {
+  dir: number;      // direction in radians
+  amplitude: number;
+  frequency: number;
+  speed: number;
+  steepness: number; // Q — 0=round sine, >0=sharper peaks
+  color: string;
+}
+
+const GERSTNER_LAYERS: WaveLayer[] = [
+  { dir: 0.2, amplitude: 16, frequency: 0.008, speed: 0.35, steepness: 0.3, color: "rgba(6,182,212,0.25)" },
+  { dir: 0.5, amplitude: 10, frequency: 0.018, speed: 0.55, steepness: 0.25, color: "rgba(8,145,178,0.20)" },
+  { dir: -0.3, amplitude: 6, frequency: 0.032, speed: 0.8, steepness: 0.2, color: "rgba(14,116,144,0.15)" },
+  { dir: -0.1, amplitude: 3, frequency: 0.055, speed: 1.2, steepness: 0.15, color: "rgba(21,94,117,0.12)" },
 ];
 
 const STAR_COUNT = 80;
@@ -210,14 +224,21 @@ function drawSky(ctx: CanvasRenderingContext2D, w: number, h: number, stars: Sta
 }
 
 function drawWaves(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, waterStart: number) {
-  for (const layer of WAVE_LAYERS) {
+  for (const layer of GERSTNER_LAYERS) {
+    const Q = layer.steepness;
+    const cosDir = Math.cos(layer.dir);
+    const sinDir = Math.sin(layer.dir);
+
     ctx.beginPath();
     ctx.moveTo(0, h);
 
     for (let x = 0; x <= w; x += 2) {
-      const y = waterStart + Math.sin(x * layer.frequency + time * layer.phaseSpeed) * layer.amplitude
-        + Math.sin(x * layer.frequency * 2.3 + time * layer.phaseSpeed * 0.7) * layer.amplitude * 0.4;
-      ctx.lineTo(x, y);
+      const phase = layer.frequency * x + time * layer.speed;
+      // Gerstner: x' = x - Q*A*cos(dir)*cos(phase)
+      //           y' = A*sin(phase)
+      const gx = x - Q * layer.amplitude * cosDir * Math.cos(phase);
+      const gy = waterStart + layer.amplitude * Math.sin(phase);
+      ctx.lineTo(gx, gy);
     }
 
     ctx.lineTo(w, h);
@@ -225,6 +246,15 @@ function drawWaves(ctx: CanvasRenderingContext2D, w: number, h: number, time: nu
     ctx.fillStyle = layer.color;
     ctx.fill();
   }
+
+  // Edge foam — where waves meet shore/boat (depth-based foam from research doc §2.4)
+  const foamGrad = ctx.createLinearGradient(0, h * 0.9, 0, h);
+  foamGrad.addColorStop(0, "rgba(200,220,240,0)");
+  foamGrad.addColorStop(0.4, "rgba(200,220,240,0.06)");
+  foamGrad.addColorStop(0.7, "rgba(200,220,240,0.12)");
+  foamGrad.addColorStop(1, "rgba(180,200,220,0.15)");
+  ctx.fillStyle = foamGrad;
+  ctx.fillRect(0, h * 0.9, w, h * 0.1);
 }
 
 function drawMoonReflection(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, waterStart: number) {
@@ -686,6 +716,8 @@ export function useOcean(
     castAnimPhase: 0,  // 0=none, 1=backswing, 2=whip, 3=recover
     castData: { startX: 0, startY: 0, targetX: 0, targetY: 0, startTime: 0, duration: 0, initialVx: 0, initialVy: 0, active: false } as CastData,
     biteForce: 0,
+    shakeX: 0,
+    shakeY: 0,
     planktonTimer: 0,
     lastTime: 0,
     onBite: options.onBite,
@@ -740,8 +772,13 @@ export function useOcean(
 
       const { w, h, waterStart } = state;
 
-      // ── Sway (gentle boat motion) ──
+      // ── Sway (gentle boat motion) + camera shake ──
       state.swayX = Math.sin(state.time * 0.3) * 2;
+      // Camera shake decay (from research doc §7.2)
+      state.shakeX *= Math.exp(-5 * dt);
+      state.shakeY *= Math.exp(-5 * dt);
+      if (Math.abs(state.shakeX) < 0.05) state.shakeX = 0;
+      if (Math.abs(state.shakeY) < 0.05) state.shakeY = 0;
 
       // ── Rod whip physics ──
       const rodPivot = state.rodPivot;
@@ -821,6 +858,10 @@ export function useOcean(
       // ── DRAWING ORDER ──
       ctx.clearRect(0, 0, w, h);
 
+      // Apply camera shake to whole scene
+      ctx.save();
+      ctx.translate(state.shakeX, state.shakeY);
+
       // Sky + stars + moon
       drawSky(ctx, w, h, state.stars, state.time, state.swayX);
 
@@ -829,6 +870,8 @@ export function useOcean(
 
       // Waves
       drawWaves(ctx, w, h, state.time, waterStart);
+
+      ctx.restore(); // end shake
 
       // Particles (plankton, splash)
       drawParticles(ctx, state.particles, dt);
@@ -886,9 +929,14 @@ export function useOcean(
     // Whip animation: backswing → snap forward
     state.rodTargetAngle = -0.55; // pull back
     state.rodBendV = -0.3;
+    // Camera shake on cast (research doc §7.2: small rearward impulse)
+    state.shakeX = -1.5;
+    state.shakeY = -1;
     setTimeout(() => {
       state.rodTargetAngle = 0.35; // whip forward
       state.rodBendV = 0.8;
+      state.shakeX = 2;
+      state.shakeY = -2;
     }, 150);
     setTimeout(() => {
       state.rodTargetAngle = -0.25; // recover
@@ -924,14 +972,20 @@ export function useOcean(
     if (state.phase !== "waiting") return;
     state.phase = "biting";
 
-    // First yank down
+    // First yank down — sharp camera shake (research doc §7.2: hook set = 0.3-0.5)
     state.biteForce = -400;
+    state.shakeX = 3;
+    state.shakeY = 5;
     spawnRipple(state.ripples, state.bobber.x, state.bobber.y, 30, 0.6);
+    // Rod tip micro-vibrations (research doc §3.3: 5-15hz amplitude during fight)
+    state.rodBendV = 0.15;
 
     // Second yank after delay
     setTimeout(() => {
       if (state.phase === "biting") {
         state.biteForce = -500;
+        state.shakeX = -2;
+        state.shakeY = 6;
         spawnRipple(state.ripples, state.bobber.x, state.bobber.y, 45, 0.7);
       }
     }, 400);

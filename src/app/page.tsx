@@ -22,11 +22,16 @@ export default function Home() {
   const phaseRef = useRef<Phase>("idle");
   phaseRef.current = phase;
 
+  const [fighting, setFighting] = useState<ProfileData | null>(null);
+
   const onBite = useCallback(() => {
     setPhase("biting");
   }, []);
 
   const onCatch = useCallback(() => {
+    // Pick who's on the line BEFORE the reel game starts
+    const match = MATCH_POOL[Math.floor(Math.random() * MATCH_POOL.length)];
+    setFighting(match);
     setPhase("reeling");
   }, []);
 
@@ -54,20 +59,23 @@ export default function Home() {
 
   // Reel game outcomes
   const handleReelCaught = useCallback(() => {
-    const match = MATCH_POOL[Math.floor(Math.random() * MATCH_POOL.length)];
-    setCaught(match);
-    setPhase("revealed");
+    if (fighting) {
+      setCaught(fighting);
+      setPhase("revealed");
+    }
     oceanRef.current?.reset();
-  }, []);
+  }, [fighting]);
 
   const handleReelSnap = useCallback(() => {
     setPhase("idle");
     setSnapped((s) => s + 1);
+    setFighting(null);
     oceanRef.current?.reset();
   }, []);
 
   const handleReelLost = useCallback(() => {
     setPhase("idle");
+    setFighting(null);
     oceanRef.current?.reset();
   }, []);
 
@@ -123,10 +131,10 @@ export default function Home() {
       )}
 
       {/* ── Reel Game ── */}
-      {phase === "reeling" && (
+      {fighting && phase === "reeling" && (
         <ReelGame
-          fishName={fightingFish.name}
-          fightLevel={fightingFish.fight}
+          fishName={fighting.name}
+          fightLevel={fighting.fight}
           onCaught={handleReelCaught}
           onSnap={handleReelSnap}
           onLost={handleReelLost}
