@@ -58,6 +58,9 @@ export default function ProfileCard({ profile, visible, onKeep, onRelease }: Pro
   const [shouldRender, setShouldRender] = useState(false);
   const targetProgress = visible ? 1 : 0;
   const progress = useSpring(targetProgress);
+  const avatarScale = useSpring(visible ? 1 : 0, { stiffness: 220, damping: 22, mass: 1 });
+  const cardY = useSpring(visible ? 1 : 0, { stiffness: 200, damping: 24, mass: 1 });
+
   const star0 = useSpring(visible ? 1 : 0, { stiffness: 200, damping: 20, mass: 1 });
   const star1 = useSpring(visible ? 1 : 0, { stiffness: 200, damping: 20, mass: 1 });
   const star2 = useSpring(visible ? 1 : 0, { stiffness: 200, damping: 20, mass: 1 });
@@ -76,67 +79,77 @@ export default function ProfileCard({ profile, visible, onKeep, onRelease }: Pro
 
   if (!shouldRender) return null;
 
-  const y = (1 - progress) * 120;
-  const scale = 0.8 + progress * 0.2;
+  const translateY = (1 - cardY) * window.innerHeight * 0.15;
+  const scale = 0.92 + progress * 0.08;
   const opacity = progress;
-  const cardOpacity = Math.min(1, progress * 1.5);
 
   return (
     <div
-      className="absolute inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+      className="absolute inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 pointer-events-none"
       style={{ opacity }}
     >
+      {/* Backdrop with blur */}
       <div
-        className="absolute inset-0 bg-gradient-to-b from-blue-950/90 via-cyan-950/95 to-teal-950/95 pointer-events-auto"
-        style={{ opacity: Math.min(1, progress * 2), backdropFilter: `blur(${progress * 12}px)` }}
+        className="absolute inset-0 bg-gradient-to-b from-blue-950/95 via-cyan-950/98 to-teal-950/95 pointer-events-auto"
+        style={{
+          opacity: Math.min(1, progress * 2),
+          backdropFilter: `blur(${progress * 20}px)`,
+          WebkitBackdropFilter: `blur(${progress * 20}px)`,
+        }}
       />
 
+      {/* Card container — mobile full-width, desktop max-w-md */}
       <div
-        className="w-full max-w-md pointer-events-auto"
+        className="w-full max-w-md mx-auto pointer-events-auto"
         style={{
-          transform: `translateY(${y}px) scale(${scale})`,
-          opacity: cardOpacity,
-          transition: "none",
+          transform: `translateY(${translateY}px) scale(${scale})`,
+          opacity: Math.min(1, progress * 1.5),
         }}
       >
-        <div className="bg-gradient-to-b from-blue-900/80 to-cyan-950/90 backdrop-blur-xl border border-cyan-700/40 rounded-3xl overflow-hidden shadow-2xl shadow-cyan-900/50">
-          {/* Hero section */}
-          <div
-            className="pt-10 pb-6 flex flex-col items-center bg-gradient-to-b from-coral/10 to-transparent"
-            style={{
-              transform: `scale(${0.5 + progress * 0.5})`,
-              opacity: Math.min(1, progress * 2),
-            }}
-          >
-            {/* Initials avatar */}
-            <div
-              className="mb-4 rounded-full flex items-center justify-center text-3xl font-extrabold text-white shadow-xl"
-              style={{
-                width: 80,
-                height: 80,
-                backgroundColor: profile.color,
-                transform: `translateY(${(1 - progress) * -60}px)`,
-                boxShadow: `0 0 30px ${profile.color}44`,
-              }}
-            >
-              {profile.initials}
+        {/* Card body */}
+        <div className="mx-4 sm:mx-0 bg-gradient-to-b from-slate-900/90 to-cyan-950/95 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+          {/* Hero section — avatar + name + stats */}
+          <div className="relative pt-8 pb-6 flex flex-col items-center bg-gradient-to-b from-white/5 to-transparent">
+            {/* Avatar with glow ring */}
+            <div className="relative mb-5">
+              {/* Outer glow */}
+              <div
+                className="absolute -inset-2 rounded-full opacity-50 blur-md transition-opacity"
+                style={{ backgroundColor: profile.color }}
+              />
+              {/* Avatar circle */}
+              <div
+                className="relative w-24 h-24 rounded-full flex items-center justify-center text-3xl font-extrabold text-white shadow-2xl"
+                style={{
+                  backgroundColor: profile.color,
+                  transform: `scale(${avatarScale})`,
+                }}
+              >
+                {profile.initials}
+              </div>
             </div>
 
-            <h2 className="text-3xl font-extrabold text-white tracking-tight">
+            {/* Name + age */}
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-1">
               {profile.name}
-              <span className="text-cyan-300/60 text-lg font-normal ml-2">{profile.age}</span>
+              <span className="text-base sm:text-lg font-normal text-white/60 ml-2">{profile.age}</span>
             </h2>
-            <p className="text-cyan-300/60 text-sm mt-1 italic">{profile.tagline}</p>
 
-            {/* Stars — staggered */}
+            {/* Tagline */}
+            <p className="text-sm text-white/50 italic px-6 text-center leading-relaxed">
+              {profile.tagline}
+            </p>
+
+            {/* Stars */}
             <div className="flex gap-1 mt-3">
               {Array.from({ length: profile.rarity }).map((_, i) => (
                 <span
                   key={i}
-                  className="text-yellow-400 text-lg"
+                  className="text-base"
                   style={{
                     transform: `scale(${starSprings[i]})`,
                     opacity: starSprings[i],
+                    filter: `drop-shadow(0 0 3px rgba(250,204,21,0.5))`,
                   }}
                 >
                   ⭐
@@ -145,22 +158,35 @@ export default function ProfileCard({ profile, visible, onKeep, onRelease }: Pro
             </div>
           </div>
 
-          {/* Bio */}
-          <div className="px-8 py-6" style={{ opacity: Math.min(1, Math.max(0, (progress - 0.15) * 3)) }}>
-            <p className="text-cyan-200/80 text-center leading-relaxed">{profile.bio}</p>
+          {/* Bio section */}
+          <div className="px-6 pb-6">
+            <p
+              className="text-white/70 text-sm leading-relaxed text-center"
+              style={{ opacity: Math.min(1, Math.max(0, (progress - 0.15) * 3)) }}
+            >
+              {profile.bio}
+            </p>
           </div>
 
-          {/* Actions */}
-          <div className="px-8 pb-8 flex gap-4" style={{ opacity: Math.min(1, Math.max(0, (progress - 0.25) * 3)) }}>
+          {/* Divider */}
+          <div className="border-t border-white/5" />
+
+          {/* Actions — full-width mobile buttons */}
+          <div
+            className="flex gap-3 p-4"
+            style={{ opacity: Math.min(1, Math.max(0, (progress - 0.25) * 3)) }}
+          >
             <button
               onClick={onRelease}
-              className="flex-1 py-4 rounded-2xl border border-red-500/40 text-red-300 font-semibold hover:bg-red-500/10 transition-all active:scale-95 text-lg"
+              className="flex-1 py-4 rounded-2xl border border-white/10 text-white/60 font-semibold active:scale-95 active:bg-red-500/10 transition-all text-base"
+              style={{ minHeight: 52 }}
             >
               🎣 Release
             </button>
             <button
               onClick={onKeep}
-              className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-coral to-orange-500 text-white font-bold hover:scale-105 transition-all active:scale-95 shadow-lg shadow-coral/30 text-lg"
+              className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-coral to-orange-500 text-white font-bold active:scale-95 shadow-lg shadow-coral/25 transition-all text-base"
+              style={{ minHeight: 52 }}
             >
               ❤️ Keep
             </button>

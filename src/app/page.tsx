@@ -15,6 +15,7 @@ export default function Home() {
   const oceanRef = useRef<OceanAPI | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [caught, setCaught] = useState<ProfileData | null>(null);
+  const [fighting, setFighting] = useState<ProfileData | null>(null);
   const [score, setScore] = useState(0);
   const [catches, setCatches] = useState<ProfileData[]>([]);
   const [rejects, setRejects] = useState(0);
@@ -22,20 +23,14 @@ export default function Home() {
   const phaseRef = useRef<Phase>("idle");
   phaseRef.current = phase;
 
-  const [fighting, setFighting] = useState<ProfileData | null>(null);
-
-  const onBite = useCallback(() => {
-    setPhase("biting");
-  }, []);
+  const onBite = useCallback(() => setPhase("biting"), []);
 
   const onCatch = useCallback(() => {
-    // Pick who's on the line BEFORE the reel game starts
     const match = MATCH_POOL[Math.floor(Math.random() * MATCH_POOL.length)];
     setFighting(match);
     setPhase("reeling");
   }, []);
 
-  // Wire up the ocean engine
   oceanRef.current = useOcean(canvasRef, { onBite, onCatch });
 
   const handleCast = () => {
@@ -44,20 +39,15 @@ export default function Home() {
 
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const targetX = w * 0.25 + Math.random() * w * 0.5;
-    const targetY = h * 0.38 + Math.random() * h * 0.15;
+    const targetX = w * 0.2 + Math.random() * w * 0.6;
+    const targetY = h * 0.35 + Math.random() * h * 0.2;
 
     oceanRef.current.cast(targetX, targetY);
-
-    setTimeout(() => setPhase("waiting"), 1000);
-
+    setTimeout(() => setPhase("waiting"), 900);
     const biteDelay = 2500 + Math.random() * 3500;
-    setTimeout(() => {
-      oceanRef.current?.bite();
-    }, biteDelay);
+    setTimeout(() => oceanRef.current?.bite(), biteDelay);
   };
 
-  // Reel game outcomes
   const handleReelCaught = useCallback(() => {
     if (fighting) {
       setCaught(fighting);
@@ -94,43 +84,71 @@ export default function Home() {
     setPhase("idle");
   };
 
-  // Pick a fight profile for the reeling game
-  const fightingFish = caught || MATCH_POOL[0];
-
   return (
-    <main className="h-screen w-screen overflow-hidden relative bg-blue-950">
-      {/* ── Canvas Layer ── */}
+    <main
+      className="h-dvh w-dvw overflow-hidden relative bg-blue-950"
+      style={{
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        paddingLeft: "env(safe-area-inset-left, 0px)",
+        paddingRight: "env(safe-area-inset-right, 0px)",
+      }}
+    >
+      {/* Canvas */}
       <canvas ref={canvasRef} className="absolute inset-0" />
 
-      {/* ── Status Text ── */}
-      <div className="absolute top-[42%] left-0 right-0 text-center z-10 pointer-events-none">
+      {/* HUD: top-left — subtle branding */}
+      <div className="absolute top-[max(16px,env(safe-area-inset-top,0px))] left-4 z-20 pointer-events-none">
+        <h1 className="text-white/30 text-xs font-mono tracking-[0.15em]">HOOK IT UP</h1>
+      </div>
+
+      {/* HUD: top-right — stats */}
+      <div className="absolute top-[max(16px,env(safe-area-inset-top,0px))] right-4 z-20 flex items-center gap-3">
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="text-white/40">🐟</span>
+          <span className="font-semibold text-coral tabular-nums">{score}</span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-white/25">
+          <span>{catches.length} kept</span>
+          <span>{snapped} lost</span>
+        </div>
+      </div>
+
+      {/* Status text */}
+      <div className="absolute top-[40%] left-0 right-0 text-center z-10 pointer-events-none">
         {phase === "waiting" && (
-          <p className="text-cyan-300/50 text-lg animate-pulse tracking-wide drop-shadow-lg">
-            Watching the bobber...
+          <p className="text-white/30 text-sm tracking-wide animate-pulse">
+            watching the bobber...
           </p>
         )}
         {phase === "biting" && (
-          <p className="text-coral font-bold text-2xl tracking-wide drop-shadow-lg" style={{ animation: "bob 0.4s ease-in-out infinite" }}>
-            🎣 You&apos;ve got a bite!
+          <p className="text-coral/90 font-bold text-xl tracking-wide" style={{ animation: "bob 0.3s ease-in-out infinite" }}>
+            🎣 Bite!
           </p>
         )}
       </div>
 
-      {/* ── Cast Button ── */}
+      {/* Cast button — full-width at bottom, above safe area */}
       {phase === "idle" && (
-        <div className="absolute bottom-[10%] left-0 right-0 flex justify-center z-20">
+        <div
+          className="absolute left-4 right-4 z-20 flex justify-center"
+          style={{
+            bottom: `max(24px, env(safe-area-inset-bottom, 0px) + 12px)`,
+          }}
+        >
           <button
             onClick={handleCast}
-            className="px-14 py-6 text-2xl font-extrabold text-white bg-gradient-to-r from-coral to-orange-500 rounded-full hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-coral/40 flex items-center gap-4 tracking-wide"
+            className="w-full max-w-sm py-5 bg-gradient-to-r from-coral to-orange-500 text-white text-lg font-extrabold rounded-2xl active:scale-[0.97] transition-all shadow-xl shadow-coral/30 tracking-wider flex items-center justify-center gap-3"
+            style={{ minHeight: 56 }}
           >
-            <span>🎣</span>
-            CAST
-            <span>🎣</span>
+            <span className="text-xl">🎣</span>
+            CAST YOUR LINE
+            <span className="text-xl">🎣</span>
           </button>
         </div>
       )}
 
-      {/* ── Reel Game ── */}
+      {/* Reel Game */}
       {fighting && phase === "reeling" && (
         <ReelGame
           fishName={fighting.name}
@@ -141,7 +159,7 @@ export default function Home() {
         />
       )}
 
-      {/* ── Profile Card ── */}
+      {/* Profile Card */}
       {caught && (
         <ProfileCard
           profile={caught}
@@ -150,18 +168,6 @@ export default function Home() {
           onRelease={handleRelease}
         />
       )}
-
-      {/* ── Score ── */}
-      <div className="absolute top-4 right-4 z-40 flex flex-col gap-2">
-        <div className="bg-deep-sea/70 backdrop-blur-md border border-cyan-800/50 rounded-2xl px-4 py-2 flex items-center gap-2 text-sm shadow-lg">
-          <span>🐟</span>
-          <span className="font-bold text-coral">{score}</span>
-          <span className="text-cyan-300/60">points</span>
-        </div>
-        <div className="bg-deep-sea/70 backdrop-blur-md border border-cyan-800/50 rounded-2xl px-4 py-2 text-xs text-cyan-300/60 shadow-lg">
-          {catches.length} caught • {rejects} released • {snapped} snapped
-        </div>
-      </div>
     </main>
   );
 }
